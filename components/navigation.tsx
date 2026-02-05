@@ -90,7 +90,12 @@ export function Navigation() {
                 <DropdownMenuItem asChild>
                   <Link href="/profile">{t.nav.profile}</Link>
                 </DropdownMenuItem>
-                
+                <DropdownMenuItem asChild>
+                  <Link href="/profile/orders">{t.orders?.title || "Orders"}</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/merchant/chat">{t.merchant?.title || "Merchant"}</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem>{t.nav.settings}</DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/login">{t.nav.signOut}</Link>

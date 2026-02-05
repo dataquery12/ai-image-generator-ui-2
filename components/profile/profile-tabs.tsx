@@ -17,7 +17,9 @@ import {
   Edit,
   Share2,
   Plus,
+  ShoppingBag,
 } from "lucide-react"
+import Link from "next/link"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useLanguage } from "@/lib/i18n/language-context"
@@ -192,6 +194,16 @@ export function ProfileTabs() {
               >
                 <FolderOpen className="h-4 w-4" />
                 {t.profile.collections}
+              </TabsTrigger>
+              <TabsTrigger
+                value="orders"
+                className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                asChild
+              >
+                <Link href="/profile/orders">
+                  <ShoppingBag className="h-4 w-4" />
+                  {t.orders?.title || "Orders"}
+                </Link>
               </TabsTrigger>
             </TabsList>
 

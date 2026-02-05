@@ -5,39 +5,80 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { X, Minus, ImagePlus, Send, User } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { X, Minus, ImagePlus, Send, User, Package, CreditCard, ChevronRight, Check, Clock } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/language-context"
 import Image from "next/image"
+import Link from "next/link"
+
+interface OrderCardData {
+  orderId: string
+  orderNumber: string
+  totalAmount: number
+  depositAmount: number
+  description: string
+  status: string
+}
+
+interface DesignCardData {
+  images: string[]
+  description: string
+}
 
 interface Message {
   id: number
-  type: "user" | "service"
+  type: "user" | "service" | "system"
   content: string
   image?: string
+  orderCard?: OrderCardData
+  designCard?: DesignCardData
   timestamp: Date
 }
 
 interface CustomerServiceIMProps {
   onClose: () => void
   onMinimize: () => void
+  orderId?: string
+  orderNumber?: string
 }
 
-export function CustomerServiceIM({ onClose, onMinimize }: CustomerServiceIMProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
+export function CustomerServiceIM({ onClose, onMinimize, orderId, orderNumber }: CustomerServiceIMProps) {
+  const { t, language } = useLanguage()
+  
+  const getInitialMessages = (): Message[] => {
+    const welcomeMessage: Message = {
       id: 1,
       type: "service",
-      content: "Hello! I'm your dedicated designer. How can I help you with your wheel design today?",
+      content: language === "zh" 
+        ? "您好！我是您的专属设计师。有什么可以帮助您的吗？"
+        : "Hello! I'm your dedicated designer. How can I help you with your wheel design today?",
       timestamp: new Date(),
-    },
-  ])
+    }
+    
+    if (orderId && orderNumber) {
+      return [
+        welcomeMessage,
+        {
+          id: 2,
+          type: "system",
+          content: language === "zh" 
+            ? `已关联订单：${orderNumber}` 
+            : `Connected to order: ${orderNumber}`,
+          timestamp: new Date(),
+        },
+      ]
+    }
+    
+    return [welcomeMessage]
+  }
+  
+  const [messages, setMessages] = useState<Message[]>(getInitialMessages())
   const [input, setInput] = useState("")
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { t, language } = useLanguage()
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -140,27 +181,118 @@ export function CustomerServiceIM({ onClose, onMinimize }: CustomerServiceIMProp
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 scrollbar-hide">
-        {messages.map((message) => (
-          <div key={message.id} className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`max-w-[75%] px-4 py-3 rounded-2xl ${
-                message.type === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-white border border-gray-200 text-foreground"
-              }`}
-            >
-              {message.image && (
-                <div className="mb-2 relative w-full h-32 rounded-xl overflow-hidden">
-                  <Image src={message.image || "/placeholder.svg"} alt="Attachment" fill className="object-cover" />
+        {messages.map((message) => {
+          // System message
+          if (message.type === "system") {
+            return (
+              <div key={message.id} className="flex justify-center">
+                <div className="bg-gray-200 px-4 py-2 rounded-full text-xs text-gray-600 flex items-center gap-2">
+                  <Clock className="h-3 w-3" />
+                  {message.content}
                 </div>
-              )}
-              <p className="text-sm">{message.content}</p>
-              <span className="text-xs opacity-70 mt-1 block">
-                {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
+              </div>
+            )
+          }
+
+          return (
+            <div key={message.id} className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[85%] space-y-2`}>
+                {/* Order Card */}
+                {message.orderCard && (
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Package className="h-5 w-5 text-primary" />
+                      <span className="font-semibold text-sm">
+                        {language === "zh" ? "订单卡片" : "Order Card"}
+                      </span>
+                      <Badge variant="outline" className="text-xs ml-auto">
+                        {message.orderCard.status}
+                      </Badge>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">{language === "zh" ? "订单号" : "Order No."}</span>
+                        <span className="font-mono">{message.orderCard.orderNumber}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">{language === "zh" ? "总金额" : "Total"}</span>
+                        <span className="font-semibold">
+                          {language === "zh" ? "¥" : "$"}{message.orderCard.totalAmount.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">{language === "zh" ? "定金 (30%)" : "Deposit (30%)"}</span>
+                        <span>
+                          {language === "zh" ? "¥" : "$"}{message.orderCard.depositAmount.toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-500 pt-2 border-t border-gray-100 mt-2">
+                        {message.orderCard.description}
+                      </p>
+                    </div>
+                    <Button className="w-full mt-4" size="sm" asChild>
+                      <Link href={`/profile/orders/${message.orderCard.orderId}`}>
+                        {language === "zh" ? "查看详情" : "View Details"}
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+
+                {/* Design Card */}
+                {message.designCard && (
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ImagePlus className="h-5 w-5 text-primary" />
+                      <span className="font-semibold text-sm">
+                        {language === "zh" ? "设计图已上传" : "Design Images"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {message.designCard.images.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                          <Image src={img} alt={`Design ${idx + 1}`} fill className="object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm text-gray-500">{message.designCard.description}</p>
+                    <div className="flex gap-2 mt-4">
+                      <Button size="sm" className="flex-1 gap-1">
+                        <Check className="h-4 w-4" />
+                        {language === "zh" ? "确认设计" : "Confirm"}
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-1">
+                        {language === "zh" ? "驳回" : "Reject"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Regular text message */}
+                {!message.orderCard && !message.designCard && (
+                  <div
+                    className={`px-4 py-3 rounded-2xl ${
+                      message.type === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-white border border-gray-200 text-foreground"
+                    }`}
+                  >
+                    {message.image && (
+                      <div className="mb-2 relative w-full h-32 rounded-xl overflow-hidden">
+                        <Image src={message.image || "/placeholder.svg"} alt="Attachment" fill className="object-cover" />
+                      </div>
+                    )}
+                    <p className="text-sm">{message.content}</p>
+                  </div>
+                )}
+
+                <span className="text-xs text-gray-400 block">
+                  {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         <div ref={messagesEndRef} />
       </div>
 
